@@ -272,22 +272,55 @@ void CheckMountStateAction::CompleteDismount(Player* bot)
     if (!bot || !bot->IsInWorld())
         return;
 
-    float const x = bot->GetPositionX();
-    float const y = bot->GetPositionY();
     float const startZ = bot->GetPositionZ();
 
-    float groundZ = startZ;
-    bot->UpdateAllowedPositionZ(x, y, groundZ);
-
+    // Settle the bot on the ground when it was dismounted in mid-air. MoveFall()
+    // is the whole job on its own, and it is already guarded for the case where
+    // there is nothing to settle: it looks for the ground with MAX_FALL_DISTANCE
+    // rather than the 50 yard default, returns when no valid height is found,
+    // and aborts when the ground is already less than 0.1 yards away. A bot that
+    // dismounts standing on solid footing is therefore left untouched.
     bot->GetMotionMaster()->MoveFall();
-    MovementInfo fallInfo = bot->m_movementInfo;
-    // Need to set the start of the fall, otherwise the fall may start from too high of a Z and kill the bot.
+
+    // Pin the fall baseline to the spot the bot dismounted at, so that a fall
+    // is never measured from a stale, much higher Z. MoveFall() does this itself
+    // when it actually starts a descent, but it returns before that point when
+    // the ground is near or the height lookup failed, and m_lastFallZ then keeps
+    // whatever value it was carrying from earlier.
     bot->SetFallInformation(0, startZ);
-    fallInfo.pos.Relocate(x, y, groundZ);
-    bot->HandleFall(fallInfo);
-    // Re-anchor at the ground: Player::IsFalling() compares standing Z to this, so startZ reads as a fall.
-    bot->SetFallInformation(0, groundZ);
+
     bot->RemoveUnitMovementFlag(MOVEMENTFLAG_FALLING | MOVEMENTFLAG_FALLING_FAR);
+
+    // DO NOT call Player::HandleFall() here, and do not reintroduce a
+    // UpdateAllowedPositionZ()-derived "ground" to feed it. That is what this
+    // function used to do, and it billed environmental fall damage on EVERY
+    // SMSG_DISMOUNT for the drop between the bot's feet and whatever surface the
+    // height search resolved to, at the instant of dismount, for a descent that
+    // had not happened and often never would. The bot did not move, so the
+    // damage landed with zero distance travelled.
+    //
+    // HandleFall() is the handler for the client's MSG_MOVE_FALL_LAND opcode. It
+    // is meant to run when a fall ENDS, on a real landing reported by a real
+    // client. Bots have no client and send no movement packets, so nothing ever
+    // reaches that call site for them and there is no fall to close out here.
+    // Execute() above states the same thing in its forced flight dismount note:
+    // "Without MSG_MOVE_FALL_LAND, HandleFall doesn't trigger, meaning bots
+    // don't get fall damage in forced dismounts anyway". This function was the
+    // one place that contradicted it.
+    //
+    // The billing was also inverted with respect to the mid-air case it was
+    // written for. UpdateAllowedPositionZ() only lowers Z for a unit whose
+    // CanFly() is false; for one that can fly it raises Z at most and leaves it
+    // otherwise alone. So a genuinely flying bot was charged nothing, while a
+    // grounded bot standing on vmap geometry (a bridge, a dock, a building
+    // floor, a raised city surface) was charged the full drop to the terrain
+    // underneath it, up to the 50 yard search limit. That is 65.7% of maximum
+    // health per dismount at Rate.Damage.Fall = 1, so two dismounts inside the
+    // health regeneration window killed a healthy bot outright.
+    //
+    // If simulated fall damage for bots is ever wanted, it belongs where the
+    // fall ends and needs to be driven by the distance actually descended, not
+    // applied up front from a projected landing point.
 }
 
 bool CheckMountStateAction::TryForms(Player* master, int32 masterMountType, int32 masterSpeed) const
