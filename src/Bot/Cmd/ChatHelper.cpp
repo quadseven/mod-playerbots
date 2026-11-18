@@ -5,7 +5,7 @@
  */
 
 #include "ChatHelper.h"
-#include "AiFactory.h"
+#include "ChatClassText.h"
 #include "Common.h"
 #include "ItemTemplate.h"
 #include "ObjectMgr.h"
@@ -639,21 +639,7 @@ bool ChatHelper::parseableItem(std::string const text)
 std::string const ChatHelper::FormatClass(Player* player, int8 spec)
 {
     uint8 cls = player->getClass();
-
-    std::ostringstream out;
-    out << specs[cls][spec] << " (";
-
-    std::map<uint8, uint32> tabs = AiFactory::GetPlayerSpecTabs(player);
-    uint32 c0 = tabs[0];
-    uint32 c1 = tabs[1];
-    uint32 c2 = tabs[2];
-
-    out << (c0 ? "|h|cff00ff00" : "") << c0 << "|h|cffffffff/";
-    out << (c1 ? "|h|cff00ff00" : "") << c1 << "|h|cffffffff/";
-    out << (c2 ? "|h|cff00ff00" : "") << c2 << "|h|cffffffff";
-
-    out << ")|r " << classes[cls];
-    return out.str();
+    return ChatClassText::FormatClass(specs[cls][spec], classes[cls]);
 }
 
 std::string const ChatHelper::FormatClass(uint8 cls) { return classes[cls]; }
