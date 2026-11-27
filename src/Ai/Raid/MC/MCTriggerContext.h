@@ -20,6 +20,7 @@ public:
         creators["mc magmadar fire resistance"] = &RaidMcTriggerContext::magmadar_fire_resistance;
         creators["mc gehennas shadow resistance"] = &RaidMcTriggerContext::gehennas_shadow_resistance;
         creators["mc garr fire resistance"] = &RaidMcTriggerContext::garr_fire_resistance;
+        creators["mc garr is assist tank"] = &RaidMcTriggerContext::garr_is_assist_tank;
         creators["mc baron geddon fire resistance"] = &RaidMcTriggerContext::baron_geddon_fire_resistance;
         creators["mc living bomb debuff"] = &RaidMcTriggerContext::living_bomb_debuff;
         creators["mc baron geddon inferno"] = &RaidMcTriggerContext::baron_geddon_inferno;
@@ -42,6 +43,7 @@ private:
     static Trigger* magmadar_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceTrigger(botAI, "magmadar"); }
     static Trigger* gehennas_shadow_resistance(PlayerbotAI* botAI) { return new BossShadowResistanceTrigger(botAI, "gehennas"); }
     static Trigger* garr_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceTrigger(botAI, "garr"); }
+    static Trigger* garr_is_assist_tank(PlayerbotAI* botAI) { return new McGarrAssistTankTrigger(botAI); }
     static Trigger* baron_geddon_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceTrigger(botAI, "baron geddon"); }
     static Trigger* living_bomb_debuff(PlayerbotAI* botAI) { return new McLivingBombDebuffTrigger(botAI); }
     static Trigger* baron_geddon_inferno(PlayerbotAI* botAI) { return new McBaronGeddonInfernoTrigger(botAI); }
