@@ -5,13 +5,22 @@
  */
 
 #include "MCActions.h"
+#include "Creature.h"
+#include "GarrFiresworn.h"
+#include "InstanceScript.h"
+#include "Log.h"
 #include "MCHelpers.h"
+#include "ObjectAccessor.h"
 #include "Playerbots.h"
 #include "RtiTargetValue.h"
 #include <algorithm>
+#include <utility>
 
 static constexpr float LIVING_BOMB_DISTANCE = 20.0f;
 static constexpr float INFERNO_DISTANCE = 20.0f;
+static constexpr uint32 MOLTEN_CORE_MAP = 409;
+// DATA_GARR in AzerothCore's Molten Core instance script.
+static constexpr uint32 GARR_ENCOUNTER = 3;
 
 // dedicated tank positions; prevents assist tanks from positioning Core Ragers on steep walls on pull
 static const Position GOLEMAGG_TANK_POSITION{795.7308, -994.8848, -207.18661};
@@ -109,6 +118,83 @@ bool McMoveFromLavaAction::Execute(Event /*event*/)
         botAI->SetNextCheckDelay(std::min(MAX_ESCAPE_HOLD_MS, uint32(1000.0f * bot->GetDistance(dryTarget) / speed)));
 
     return true;
+}
+
+static Player* GarrVictim(Creature* garr)
+{
+    Unit* victim = garr->GetVictim();
+    return victim ? victim->GetCharmerOrOwnerPlayerOrPlayerItself() : nullptr;
+}
+
+namespace MoltenCoreHelpers
+{
+Creature* FindGarrForAssistTank(Player* bot)
+{
+    if (bot->GetMapId() != MOLTEN_CORE_MAP || !bot->IsAlive() || !bot->IsInCombat() ||
+        !PlayerbotAI::IsAssistTank(bot))
+        return nullptr;
+
+    InstanceScript* instance = bot->GetInstanceScript();
+    if (!instance || instance->GetBossState(GARR_ENCOUNTER) != IN_PROGRESS)
+        return nullptr;
+
+    Creature* garr = ObjectAccessor::GetCreature(*bot, instance->GetGuidData(GARR_ENCOUNTER));
+    if (!garr || !garr->IsAlive() || !bot->IsValidAttackTarget(garr))
+        return nullptr;
+
+    // AI-REVIEW 2026-11-27 [Codex GPT-6/spec]: Garr engages nearby players across the zone.
+    // Tie this action to the raid actually tanking him.
+    Player* raider = GarrVictim(garr);
+    return raider && raider != bot && bot->IsInSameRaidWith(raider) ? garr : nullptr;
+}
+}
+
+bool McGarrAssistTankAction::Execute(Event event)
+{
+    Creature* garr = FindGarrForAssistTank(bot);
+    if (!garr)
+        return false;
+
+    Group* group = bot->GetGroup();
+    if (!group)
+        return false;
+    ObjectGuid const mainTank = PlayerbotAI::GetMainTankGuid(group);
+    std::vector<Player*> tanks;
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && member->GetGUID() != mainTank && member->IsAlive() && member->IsInMap(garr) &&
+            member->InSamePhase(garr) && PlayerbotAI::IsTank(member))
+            tanks.push_back(member);
+    }
+    // Keep the group order used by assist tank indices, with raid assistants first.
+    std::stable_partition(tanks.begin(), tanks.end(), [group](Player const* member)
+                          { return group->IsAssistant(member->GetGUID()); });
+
+    // Every tank uses the same set of adds registered for this encounter.
+    std::list<Creature*> adds;
+    for (Creature* add : garr->GetInstanceScript()->GetBossInfo(GARR_ENCOUNTER)->minion)
+    {
+        if (add->GetEntry() == NPC_FIRESWORN && garr->IsInMap(add) && garr->InSamePhase(add))
+            adds.push_back(add);
+    }
+    Creature* add = SelectGarrFiresworn(adds, std::move(tanks), bot, GarrVictim(garr));
+    if (add && !bot->IsValidAttackTarget(add))
+        add = nullptr;
+    if (!add || add->GetVictim() != bot)
+        heldFiresworn = ObjectGuid::Empty;
+    if (!add)
+        return false;
+
+    if (add->GetVictim() == bot && heldFiresworn != add->GetGUID())
+    {
+        heldFiresworn = add->GetGUID();
+        LOG_INFO("playerbots", "[MC] garr: tank {} holds firesworn {}", bot->GetName(), heldFiresworn.GetCounter());
+    }
+
+    if (bot->GetVictim() != add || AI_VALUE(Unit*, "current target") != add)
+        return Attack(add);
+    return add->GetVictim() != bot && botAI->DoSpecificAction("taunt spell", event, true);
 }
 
 bool McGolemaggBackOffAction::Execute(Event /*event*/)

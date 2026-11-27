@@ -32,6 +32,13 @@ public:
     bool IsActive() override;
 };
 
+class McGarrAssistTankTrigger : public Trigger
+{
+public:
+    McGarrAssistTankTrigger(PlayerbotAI* botAI) : Trigger(botAI, "mc garr is assist tank") {}
+    bool IsActive() override;
+};
+
 class McGolemaggMarkBossTrigger : public Trigger
 {
 public:

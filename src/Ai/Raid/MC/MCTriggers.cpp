@@ -43,6 +43,11 @@ bool McInLavaTrigger::IsActive()
            (liquid.Status & (LIQUID_MAP_WATER_WALK | LIQUID_MAP_IN_WATER | LIQUID_MAP_UNDER_WATER));
 }
 
+bool McGarrAssistTankTrigger::IsActive()
+{
+    return FindGarrForAssistTank(bot) != nullptr;
+}
+
 bool McGolemaggMagmaSplashTrigger::IsActive()
 {
     if (PlayerbotAI::IsTank(bot))

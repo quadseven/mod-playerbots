@@ -7,10 +7,18 @@
 #ifndef PLAYERBOTS_MCHELPERS_H
 #define PLAYERBOTS_MCHELPERS_H
 
+class Creature;
+class Player;
+
 namespace MoltenCoreHelpers
 {
+Creature* FindGarrForAssistTank(Player* bot);
+
 enum MoltenCoreNPCs
 {
+    // Garr
+    NPC_FIRESWORN = 12099,
+
     // Golemagg
     NPC_CORE_RAGER = 11672,
 

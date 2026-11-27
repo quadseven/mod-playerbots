@@ -44,6 +44,16 @@ public:
     bool Execute(Event event) override;
 };
 
+class McGarrAssistTankAction : public AttackAction
+{
+public:
+    McGarrAssistTankAction(PlayerbotAI* botAI) : AttackAction(botAI, "mc garr assist tank attack firesworn") {}
+    bool Execute(Event event) override;
+
+private:
+    ObjectGuid heldFiresworn;
+};
+
 class McGolemaggBackOffAction : public MovementAction
 {
 public:

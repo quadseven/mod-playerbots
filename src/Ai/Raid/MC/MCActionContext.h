@@ -21,6 +21,7 @@ public:
         creators["mc magmadar fire resistance"] = &RaidMcActionContext::magmadar_fire_resistance;
         creators["mc gehennas shadow resistance"] = &RaidMcActionContext::gehennas_shadow_resistance;
         creators["mc garr fire resistance"] = &RaidMcActionContext::garr_fire_resistance;
+        creators["mc garr assist tank attack firesworn"] = &RaidMcActionContext::garr_assist_tank_attack_firesworn;
         creators["mc baron geddon fire resistance"] = &RaidMcActionContext::baron_geddon_fire_resistance;
         creators["mc move from group"] = &RaidMcActionContext::check_should_move_from_group;
         creators["mc move from baron geddon"] = &RaidMcActionContext::move_from_baron_geddon;
@@ -43,6 +44,7 @@ private:
     static Action* magmadar_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceAction(botAI, "magmadar"); }
     static Action* gehennas_shadow_resistance(PlayerbotAI* botAI) { return new BossShadowResistanceAction(botAI, "gehennas"); }
     static Action* garr_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceAction(botAI, "garr"); }
+    static Action* garr_assist_tank_attack_firesworn(PlayerbotAI* botAI) { return new McGarrAssistTankAction(botAI); }
     static Action* baron_geddon_fire_resistance(PlayerbotAI* botAI) { return new BossFireResistanceAction(botAI, "baron geddon"); }
     static Action* check_should_move_from_group(PlayerbotAI* botAI) { return new McMoveFromGroupAction(botAI); }
     static Action* move_from_baron_geddon(PlayerbotAI* botAI) { return new McMoveFromBaronGeddonAction(botAI); }

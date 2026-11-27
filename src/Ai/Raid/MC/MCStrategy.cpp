@@ -34,6 +34,9 @@ void RaidMcStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
     triggers.push_back(
         new TriggerNode("mc garr fire resistance",
                         { NextAction("mc garr fire resistance", ACTION_RAID) }));
+    triggers.push_back(
+        new TriggerNode("mc garr is assist tank",
+                        { NextAction("mc garr assist tank attack firesworn", ACTION_RAID) }));
 
     // Baron Geddon
     triggers.push_back(
